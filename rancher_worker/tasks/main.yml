@@ -1,0 +1,64 @@
+- name: Get response from login endpoint using non default password
+  uri:
+    url: '{{ rancher_url }}/v3-public/localProviders/local?action=login'
+    method: POST
+    body: {"username": "admin", "password": "{{ rancher_admin_password }}"}
+    status_code: 201
+    body_format: json
+    validate_certs: "{{ validate_certs }}"
+  register: login_result
+  until: login_result.status == 201
+  retries: 10
+  delay: 10
+
+- name: Create api key 
+  uri:
+    url: '{{ rancher_url }}/v3/token'
+    method: POST
+    body: {"current":false, "expired":false, "isDerived":false, "ttl":86400000, "type":"token", "description":"automation"}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ login_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  register: api_key_result
+
+- name: Create cluster
+  uri:
+    url: '{{ rancher_url }}/v3/cluster'
+    method: POST
+    body: {"type":"cluster","nodes":[],"rancherKubernetesEngineConfig":{"ignoreDockerVersion":true, "network":{"type":"networkConfig","plugin":"{{ rancher_network_provider }}"}},"name":"{{ rancher_cluster_name }}"}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  ignore_errors: true
+
+- name: Get cluster id
+  uri:
+    url: '{{ rancher_url }}/v3/clusters'
+    method: GET
+    status_code: 200
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  register: cluster_result
+
+
+- name: Get command to launch for nodes
+  uri:
+    url: '{{ rancher_url }}/v3/clusterregistrationtoken'
+    method: POST
+    body: {"type":"clusterRegistrationToken","clusterId":"{{cluster_result.json.data[0].id}}"}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  register: node_command_result
+
+- name: launch master command
+  shell: '{{ node_command_result.json.nodeCommand[5:] }} {{ rancher_worker_role }} '
+

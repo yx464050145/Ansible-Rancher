@@ -1,0 +1,11 @@
+[rancher]
+192.168.188.190 ansible_ssh_user='root' ansible_ssh_pass='1'
+
+[master]
+192.168.188.191 ansible_ssh_user='root' ansible_ssh_pass='1'
+
+[worker]
+192.168.188.195 ansible_ssh_user='root' ansible_ssh_pass='1'
+
+[test]
+192.168.188.190 ansible_ssh_user='root' ansible_ssh_pass='1'

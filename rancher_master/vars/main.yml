@@ -1,0 +1,21 @@
+---
+# defaults file for rancher
+rancher_url: ""
+rancher_admin_password: "bangwo8"
+validate_certs: false
+rancher_network_provider: "calico"
+rancher_cluster_name: bangwo8
+rancher_master_role: "--etcd --controlplane"
+rancher_project_name: "bangni8"
+rancher_app_name: "bangwo8"
+rancher_app_password: ""
+rancher_app_url: ""
+rancher_app_username: ""
+log_values: ""
+log_pilot_version: ""
+bangwo8_version: ""
+aliyun_sls_access_key_id: ""
+aliyun_sls_access_key_secret: ""
+aliyun_username: ""
+aliyun_password: ""
+

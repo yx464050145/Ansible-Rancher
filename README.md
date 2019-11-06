@@ -6,12 +6,27 @@ It has three roles
  - 1. rancher-server
  - 2. rancher-master :k8s master node
  - 3. rancher-worker :k8s worker node
+ - 4, install docker
 
 It has four functions
  - 1. Building the lancher server container
  - 2. Build k8s cluster and join rancher
  - 3. Build k8s cluster's project
  - 4. BUild k8s app and Start some services，app git address is mayun
+
+Start Rancher
+------------
+You can use this command to start the Ranger journey
+ansible-playbook -i inventory/hosts rancher.yml
+
+
+inventory
+---------
+- [rancher]         >  rancher server node
+             
+- [master]          >  rancher master node 
+                        
+- [worker]          >  rancher worker node
 
 
 rancher-server roles

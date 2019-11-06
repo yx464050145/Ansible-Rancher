@@ -1,0 +1,11 @@
+---
+# defaults file for rancher
+rancher_name: 'rancher_server'
+rancher_port: 80
+rancher_image: rancher/rancher:stable
+rancher_data: /var/rancher
+rancher_ssl_ports: 443
+rancher_url: ""
+rancher_admin_password: "bangwo8"
+validate_certs: false
+

@@ -1,0 +1,15 @@
+- hosts: all
+  roles:
+  - docker
+
+- hosts: rancher
+  roles:
+  - rancher_server
+
+- hosts: master
+  roles:
+  - rancher_master
+
+- hosts: worker
+  roles:
+  - rancher_worker

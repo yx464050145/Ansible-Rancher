@@ -1,0 +1,8 @@
+---
+# defaults file for rancher
+rancher_url: ""
+rancher_admin_password: "bangwo8"
+validate_certs: false
+rancher_network_provider: "calico"
+rancher_cluster_name: bangwo8
+rancher_worker_role: "--worker"

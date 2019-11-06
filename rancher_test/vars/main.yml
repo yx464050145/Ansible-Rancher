@@ -1,0 +1,22 @@
+# defaults file for rancher
+rancher_url: "https://192.168.188.190"
+rancher_admin_password: "bangwo8"
+validate_certs: false
+rancher_network_provider: "calico"
+rancher_cluster_name: bangwo8
+rancher_master_role: "--etcd --controlplane"
+rancher_project_name: "bangni8"
+rancher_app_name: "bangwo8"
+rancher_app_password: "yx979150"
+rancher_app_url: "https://gitee.com/bangwo8/charts"
+rancher_app_username: "yx979150"
+valuesYaml: ""
+log_pilot_version: "0.9.7"
+answers: "{aliyun_sls.access_key_id: \"LTAIKzJqfjQ70Jiw\",aliyun_sls.access_key_secret: \"5yYS3NKXZFvO0L3d4LlFZhepXr2H5F\" }"
+aliyun_sls_access_key_id: "LTAIKzJqfjQ70Jiw"
+aliyun_sls_access_key_secret: "5yYS3NKXZFvO0L3d4LlFZhepXr2H5F"
+aliyun_address: "registry.cn-beijing.aliyuncs.com"
+aliyun_username: "kingdee-docker@20265327"
+aliyun_password: "bangwo8isgreate"
+bangwo8_values: "---\nenv_mode: abtest\nbangwo8_image: gnway/bangwo8:huidu-57c8b16e\nxdebug:\n  remote_host: frp-server.bangwo8-system.svc.cluster.local\ningress: \n  host: \"abtest.bangwo8.com\"\nasync_msg: \n  enable: true\n  image: \n    repository: \"gnway/async_msg\"\n    tag: \"abtest-b200feae\"\nbinlog_project: \n  enable: false\ncmd_project:\n  enable: false\nrpc_project: \n  enable: true\n  ingress:\n    host: rpc-abtest.bangwo8.com\n  image: \n    repository: \"gnway/rpc_project\"\n    tag: \"abtest-4ca45eaa\"\ntimer_project: \n  enable: false"
+bangwo8_version: "0.1.0"

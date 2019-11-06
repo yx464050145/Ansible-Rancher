@@ -1,0 +1,181 @@
+- name: Get response from login endpoint using non default password
+  uri:
+    url: '{{ rancher_url }}/v3-public/localProviders/local?action=login'
+    method: POST
+    body: {"username": "admin", "password": "{{ rancher_admin_password }}"}
+    status_code: 201
+    body_format: json
+    validate_certs: "{{ validate_certs }}"
+  register: login_result
+  until: login_result.status == 201
+  retries: 10
+  delay: 10
+
+- name: Create api key 
+  uri:
+    url: '{{ rancher_url }}/v3/token'
+    method: POST
+    body: {"current":false, "expired":false, "isDerived":false, "ttl":86400000, "type":"token", "description":"automation"}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ login_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  register: api_key_result
+
+- name: Create cluster
+  uri:
+    url: '{{ rancher_url }}/v3/cluster'
+    method: POST
+    body: {"type":"cluster","nodes":[],"rancherKubernetesEngineConfig":{"ignoreDockerVersion":true, "network":{"type":"networkConfig","plugin":"{{ rancher_network_provider }}"}},"name":"{{ rancher_cluster_name }}"}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  ignore_errors: true
+
+- name: Get cluster id
+  uri:
+    url: '{{ rancher_url }}/v3/clusters'
+    method: GET
+    status_code: 200
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  register: cluster_result
+
+
+- name: Get command to launch for nodes
+  uri:
+    url: '{{ rancher_url }}/v3/clusterregistrationtoken'
+    method: POST
+    body: {"type":"clusterRegistrationToken","clusterId":"{{cluster_result.json.data[0].id}}"}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  register: node_command_result
+
+- name: Launch master command
+  shell: '{{ node_command_result.json.nodeCommand[5:] }} {{ rancher_master_role }} '
+
+- name: Wait cluster ready
+  uri:
+    url: '{{ rancher_url }}/v3/clusters/{{ cluster_result.json.data[0].id }}'
+    method: GET
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  register: cluster_active
+  until: cluster_active.json.state == "active"
+  retries: 100
+  delay: 60
+
+- name: Create bangwo8 project
+  uri:
+    url: '{{ rancher_url }}/v3/project?_replace=true'
+    method: POST
+    body: {"clusterId":"{{cluster_result.json.data[0].id}}", "enableProjectMonitoring": false, "labels":{}, "name":"{{ rancher_project_name }}", "type":"project"}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  register: project_result
+
+
+- name: Create bangwo8 app
+  uri:
+    url: '{{ rancher_url }}/v3/catalog'
+    method: POST
+    body: {"branch":"master", "kind": "helm", "name":"{{ rancher_app_name }}", "password":"{{ rancher_app_password }}", "type":"catalog", "url":"{{ rancher_app_url }}", "username":"{{ rancher_app_username }}"}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+
+- name: Wait template reday
+  uri:
+    url: '{{ rancher_url }}/v3/templates?catalogId={{ rancher_cluster_name }}'
+    method: GET
+    status_code: 200
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ login_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+
+- name: GET template state
+  uri:
+    url: '{{ rancher_url }}/v3/templates?catalogId={{ rancher_cluster_name }}'
+    method: GET
+    status_code: 200
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ login_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+  register: template_result
+  until: template_result.json.pagination.total == 4
+  retries: 100
+  delay: 10
+
+- name: Create namespace log-pilot
+  uri:
+    url: '{{ rancher_url }}/v3/clusters/{{ cluster_result.json.data[0].id }}/namespace'
+    method: POST
+    body: {"clusterId":"{{ cluster_result.json.data[0].id }}", "name":"log-pilot", "projectId":"{{ project_result.json.id }}", "resourceQuota":null, "type":"namespace" }
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ login_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+
+- name: Create namespace bangwo8
+  uri:
+    url: '{{ rancher_url }}/v3/clusters/{{ cluster_result.json.data[0].id }}/namespace'
+    method: POST
+    body: {"clusterId":"{{ cluster_result.json.data[0].id }}", "name":"bangwo8", "projectId":"{{ project_result.json.id }}", "resourceQuota":null, "type":"namespace" }
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ login_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+
+- name: Create dockerCredential
+  uri:
+    url: '{{ rancher_url }}/v3/projects/{{ project_result.json.id }}/dockercredential'
+    method: POST
+    body: {"name":"aliyun", "type":"dockerCredential", "registries":{registry.cn-beijing.aliyuncs.com:    {"username": "{{ aliyun_username }}", "password":"{{ aliyun_password }}"  }}}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ api_key_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+
+- name: Create app log-pilot
+  uri:
+    url: '{{ rancher_url }}/v3/projects/{{ project_result.json.id }}/app'
+    method: POST
+    body: {"answers": {"aliyun_sls.access_key_id": "{{ aliyun_sls_access_key_id }}","aliyun_sls.access_key_secret": "{{ aliyun_sls_access_key_secret }}"}, "externalId": "catalog://?catalog=bangwo8&template=log-pilot&version={{ log_pilot_version }}", "name":"log-pilot", "projectId":"{{ project_result.json.id }}", "prune":false, "targetNamespace": "log-pilot", "type":"app", "valuesYaml":""}
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ login_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+
+
+- name: Create app bangwo8
+  uri:
+    url: '{{ rancher_url }}/v3/projects/{{ project_result.json.id }}/app'
+    method: POST
+    body: {"answers": 	{}, "externalId": "catalog://?catalog=bangwo8&template=bangwo8&version={{ bangwo8_version }}", "name":"bangwo8", "projectId":"{{ project_result.json.id }}", "prune":false, "targetNamespace": "bangwo8", "type":"app", "valuesYaml":"{{ bangwo8_values }}" }
+    status_code: 201
+    body_format: json
+    headers:
+      Authorization: "Bearer {{ login_result.json.token }}"
+    validate_certs: "{{ validate_certs }}"
+
